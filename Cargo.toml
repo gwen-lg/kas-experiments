@@ -7,6 +7,9 @@ edition = "2021"
 [[bin]]
 name = "hello"
 path = "src/hello.rs"
+[[bin]]
+name = "counter"
+path = "src/counter.rs"
 
 [dependencies]
 env_logger = "0.10.0"
