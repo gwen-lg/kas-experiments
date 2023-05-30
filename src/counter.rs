@@ -17,7 +17,7 @@ impl_scope! {
 			],
 		];
 	}]
-	#[derive(Debug)]
+	#[derive(Debug, Clone)]
 	struct Counter {
 		core: widget_core!(),
 		#[widget] display: SingleView<SharedRc<i32>>,
@@ -51,5 +51,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 	let theme = kas::theme::FlatTheme::new().with_font_size(24.0);
 
 	let counter = Counter::new(0);
-	kas::shell::DefaultShell::new(theme)?.with(counter)?.run()
+	kas::shell::DefaultShell::new(theme)?
+		.with(counter.clone())?
+		.with(counter)?
+		.run()
 }
