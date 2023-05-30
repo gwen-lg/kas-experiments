@@ -1,5 +1,7 @@
+use kas::model::SharedRc;
 use kas::prelude::*;
-use kas::widgets::{Label, TextButton};
+use kas::view::SingleView;
+use kas::widgets::TextButton;
 
 #[derive(Clone, Debug)]
 struct Increment(i32);
@@ -18,8 +20,7 @@ impl_scope! {
 	#[derive(Debug)]
 	struct Counter {
 		core: widget_core!(),
-		#[widget] display: Label<String>,
-		count: i32,
+		#[widget] display: SingleView<SharedRc<i32>>,
 	}
 
 	// `impl Self` is equivalent to `impl Counter` here.
@@ -28,18 +29,14 @@ impl_scope! {
 		fn new(count: i32) -> Self {
 			Counter {
 				core: Default::default(),
-				display: Label::from(count.to_string()),
-				count,
+				display: SingleView::new(SharedRc::new(count)),
 			}
 		}
 	}
 	impl Widget for Self {
 		fn handle_message(&mut self, mgr: &mut EventMgr) {
 			if let Some(Increment(incr)) = mgr.try_pop() {
-				// Since this handler runs on `Counter`, we can update self.count:
-				self.count += incr;
-				// Unfortunately, we must update self.display manually:
-				*mgr |= self.display.set_string(self.count.to_string());
+				self.display.update_value(mgr, |count| *count += incr);
 			}
 		}
 	}
