@@ -1,7 +1,7 @@
 use std::num::ParseFloatError;
 use std::str::FromStr;
 
-use kas::event::VirtualKeyCode as VK;
+use kas::event::{Command, VirtualKeyCode as VK};
 use kas::prelude::*;
 use kas::widgets::{EditBox, TextButton};
 
@@ -53,6 +53,22 @@ impl_scope! {
 	}
 
 	impl Widget for Self {
+		fn configure(&mut self, mgr: &mut ConfigMgr) {
+			mgr.enable_alt_bypass(self.id_ref(), true);
+			mgr.disable_nav_focus(true);
+			mgr.register_nav_fallback(self.id());
+		}
+		fn handle_event(&mut self, mgr: &mut EventMgr, event: Event) -> Response {
+			match event {
+				Event::Command(Command::DelBack) => {
+					if self.calc.handle(Key::DelBack) {
+						*mgr |= self.display.set_string(self.calc.display());
+					}
+					Response::Used
+				}
+				_ => Response::Unused,
+			}
+		}
 		fn handle_message(&mut self, mgr: &mut EventMgr) {
 			if let Some(msg) = mgr.try_pop::<Key>() {
 				if self.calc.handle(msg) {
