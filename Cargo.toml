@@ -10,6 +10,9 @@ path = "src/hello.rs"
 [[bin]]
 name = "counter"
 path = "src/counter.rs"
+[[bin]]
+name = "calculator"
+path = "src/calculator.rs"
 
 [dependencies]
 env_logger = "0.10.0"
