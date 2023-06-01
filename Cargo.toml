@@ -13,6 +13,9 @@ path = "src/counter.rs"
 [[bin]]
 name = "calculator"
 path = "src/calculator.rs"
+[[bin]]
+name = "async-event"
+path = "src/async-event.rs"
 
 [dependencies]
 env_logger = "0.10.0"
