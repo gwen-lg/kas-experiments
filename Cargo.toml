@@ -20,3 +20,4 @@ path = "src/async-event.rs"
 [dependencies]
 env_logger = "0.10.0"
 kas = "0.13.0"
+kas-wgpu = "0.13.0"
