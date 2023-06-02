@@ -22,5 +22,7 @@ path = "src/watch-file.rs"
 
 [dependencies]
 env_logger = "0.10.0"
+futures = "0.3.28"
 kas = "0.13.0"
 kas-wgpu = "0.13.0"
+notify = "6.0.0"
