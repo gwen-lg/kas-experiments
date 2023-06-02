@@ -1,16 +1,14 @@
-use std::path::Path;
 use std::thread;
+use std::{path::Path, time::Duration};
 
+use async_executor::LocalExecutor;
 use kas::event::UpdateId;
 use kas::prelude::*;
 use kas::widgets::dialog::Window;
 use kas::widgets::ScrollLabel;
 use notify::EventKind;
 
-use futures::{
-	channel::mpsc::{channel, Receiver},
-	SinkExt, StreamExt,
-};
+use futures_lite::future;
 use notify::{Config, RecommendedWatcher, RecursiveMode, Watcher};
 
 #[derive(Clone, Debug)]
@@ -48,13 +46,17 @@ impl_scope! {
 				loaded: false,
 			}
 		}
+
+		fn read_file(&self) {
+
+		}
 	}
 
 	impl Widget for Self {
 		fn handle_event(&mut self, mgr: &mut EventMgr, event: Event) -> Response {
 			match event {
 				Event::Update { id, .. } if id == self.update_id => {
-					mgr.push(FileWatch::Changed);
+					//mgr.push(FileWatch::Changed);
 					*mgr |= self.display.set_string("content changed".to_string());
 					mgr.redraw(self.id());
 					Response::Used
@@ -62,17 +64,6 @@ impl_scope! {
 				_ => Response::Unused,
 			}
 		}
-		// fn handle_message(&mut self, mgr: &mut EventMgr) {
-		// 	println!("message");
-		// 	if let Some(msg) = mgr.try_pop::<FileWatch>() {
-		// 		match msg {
-		// 			FileWatch::Changed => {
-		// 				*mgr |= self.display.set_string("content changed".to_string());
-		// 				self.loaded = true;
-		// 			}
-		// 		}
-		// 	}
-		// }
 	}
 }
 
@@ -98,32 +89,15 @@ fn watch_file_update(proxy: kas::shell::Proxy, update_id: UpdateId) {
 	thread::Builder::new()
 		.name("Watcher".to_string())
 		.spawn(move || {
-			futures::executor::block_on(async {
+			let executor = LocalExecutor::new();
+			let task = executor.spawn(async {
 				if let Err(e) = async_watch(proxy, update_id, FILENAME).await {
 					println!("error: {:?}", e)
 				}
 			});
+			future::block_on(executor.run(task));
 		})
 		.unwrap();
-}
-
-fn async_watcher() -> notify::Result<(RecommendedWatcher, Receiver<notify::Result<notify::Event>>)>
-{
-	let (mut tx, rx) = channel(1);
-
-	// Automatically select the best implementation for your platform.
-	// You can also access each implementation directly e.g. INotifyWatcher.
-	let watcher = RecommendedWatcher::new(
-		move |res| {
-			futures::executor::block_on(async {
-				//let msg = FileWatch::Changed;
-				tx.send(res).await.unwrap();
-			})
-		},
-		Config::default(),
-	)?;
-
-	Ok((watcher, rx))
 }
 
 async fn async_watch<P: AsRef<Path>>(
@@ -131,7 +105,15 @@ async fn async_watch<P: AsRef<Path>>(
 	update_id: UpdateId,
 	path: P,
 ) -> notify::Result<()> {
-	let (mut watcher, mut rx) = async_watcher()?;
+	let (sender, mut receiver) = flume::bounded(1);
+
+	let mut watcher = RecommendedWatcher::new(
+		move |res| {
+			//proxy.update_all(update_id, 0).unwrap_or(());
+			sender.send(res).unwrap();
+		},
+		Config::default(),
+	)?;
 
 	// Add a path to be watched. All files and directories at that path and
 	// below will be monitored for changes.
@@ -139,7 +121,7 @@ async fn async_watch<P: AsRef<Path>>(
 
 	println!("watching {}", path.as_ref().display());
 
-	while let Some(res) = rx.next().await {
+	while let Ok(res) = receiver.recv_async().await {
 		match res {
 			Ok(event) => {
 				match event.kind {
