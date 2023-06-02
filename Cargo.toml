@@ -16,6 +16,9 @@ path = "src/calculator.rs"
 [[bin]]
 name = "async-event"
 path = "src/async-event.rs"
+[[bin]]
+name = "watch-file"
+path = "src/watch-file.rs"
 
 [dependencies]
 env_logger = "0.10.0"
